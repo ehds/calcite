@@ -38,3 +38,4 @@ For more details, see the [home page](http://calcite.apache.org).
 
 The project uses [JIRA](https://issues.apache.org/jira/browse/CALCITE)
 for issue tracking. For further information, please see the [JIRA accounts guide](https://calcite.apache.org/develop/#jira-accounts).
+
