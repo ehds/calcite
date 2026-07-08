@@ -2144,6 +2144,16 @@ public abstract class SqlImplementor {
           // Avoid losing the distinct attribute of inner aggregate.
           return !hasNestedAgg || Aggregate.isNotGrandTotal(agg);
         }
+
+        // If GROUP BY columns reference window aggregate or aggregate
+        // function in the underlying Project, a sub-query is required
+        // because GROUP BY cannot directly reference window/aggregate
+        // expressions.
+        if (!dialect.supportsGroupByAgg()
+            && (hasGroupByNested(agg, SqlImplementor::isWindowedAggregate)
+            || hasGroupByNested(agg, SqlImplementor::isAggregate))) {
+          return true;
+        }
       }
 
       return false;
@@ -2245,6 +2255,39 @@ public abstract class SqlImplementor {
       return result[0];
     }
 
+
+  /** Checks whether any GROUP BY column in the Aggregate references
+   * a column in the underlying SqlSelect's select list that
+   * match the predicate.
+   *
+   * @param aggregate Aggregate node
+   * @param operandPredicate Predicate for the nested operands
+   * @return whether any GROUP BY column matches the predicate */
+    private boolean hasGroupByNested(
+        @UnknownInitialization Result this,
+        Aggregate aggregate,
+        Predicate<SqlNode> operandPredicate) {
+      final boolean[] result = {false};
+      if (node instanceof SqlSelect) {
+        SqlNodeList selectList = ((SqlSelect) node).getSelectList();
+        if (!selectList.equals(SqlNodeList.SINGLETON_STAR)) {
+          for (int groupCol : aggregate.getGroupSet()) {
+            if (groupCol < selectList.size()) {
+              SqlNode selectItem = selectList.get(groupCol);
+              if (selectItem instanceof SqlBasicCall) {
+                selectItem.accept(new SqlShuttle() {
+                  @Override public @Nullable SqlNode visit(SqlCall call) {
+                    result[0] = result[0] || operandPredicate.test(call);
+                    return super.visit(call);
+                  }
+                });
+              }
+            }
+          }
+        }
+      }
+      return result[0];
+    }
     /** Returns the highest clause that is in use. */
     @Deprecated
     public Clause maxClause() {

@@ -1139,6 +1139,14 @@ public class SqlDialect {
   }
 
   /**
+   * Returns whether the dialect supports GROUP BY on window aggregate or
+   * aggregate expressions, for instance.
+  */
+  public boolean supportsGroupByAgg() {
+    return false;
+  }
+
+  /**
    * Returns whether this dialect supports "WITH ROLLUP" in the "GROUP BY"
    * clause.
    *

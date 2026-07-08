@@ -9081,6 +9081,20 @@ class RelToSqlConverterTest {
     sql(expected).exec();
   }
 
+  @Test void testSelectDistinctFromOverAgg() {
+    final String query = "SELECT DISTINCT \"max_product_id\"\n"
+        + "FROM (SELECT MAX(\"product_id\") "
+        + "OVER (PARTITION BY \"product_class_id\") as \"max_product_id\"\n"
+        + "FROM \"foodmart\".\"product\")";
+    final String expected = "SELECT \"max_product_id\"\n"
+        + "FROM (SELECT MAX(\"product_id\") "
+        + "OVER (PARTITION BY \"product_class_id\" "
+        + "RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS \"max_product_id\"\n"
+        + "FROM \"foodmart\".\"product\") AS \"t\"\nGROUP BY \"max_product_id\"";
+    sql(query).ok(expected);
+  }
+
+
   @Test void testSelectNullWithInsert() {
     final String query = "insert into\n"
         + "\"account\"(\"account_id\",\"account_parent\",\"account_type\",\"account_rollup\")\n"
